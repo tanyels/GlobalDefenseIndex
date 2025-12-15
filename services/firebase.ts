@@ -1,4 +1,5 @@
 import { Country, Aircraft, StatDefinition } from "../types";
+// @ts-ignore
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged, User as FirebaseUser, Auth } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, Firestore } from "firebase/firestore";
@@ -17,15 +18,12 @@ export interface GlobalData {
 
 // --- CONFIGURATION ---
 
-// Safe Environment Access
-// We access import.meta.env directly to ensure Vite replaces it correctly during build.
-// We also fallback to process.env if available (Node/Polyfilled)
 const getEnv = (key: string) => {
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-        // @ts-ignore
-        return import.meta.env[key];
+    // Vite / Modern browsers
+    if ((import.meta as any).env && (import.meta as any).env[key]) {
+        return (import.meta as any).env[key];
     }
+    // Node / Polyfill
     // @ts-ignore
     if (typeof process !== 'undefined' && process.env && process.env[key]) {
         return process.env[key];
@@ -33,20 +31,20 @@ const getEnv = (key: string) => {
     return "";
 };
 
-const apiKey = getEnv("VITE_FIREBASE_API_KEY") || getEnv("VITE_API_KEY") || ((typeof process !== 'undefined' && process.env) ? process.env.API_KEY : "");
-const projectId = getEnv("VITE_FIREBASE_PROJECT_ID") || "global-defense-index";
+const apiKey = (import.meta as any).env?.VITE_FIREBASE_API_KEY || (import.meta as any).env?.VITE_API_KEY || ((typeof process !== 'undefined' && process.env) ? process.env.API_KEY : "");
+const projectId = (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || "global-defense-index";
 
 // Log configuration status (without leaking the full key)
 console.log(`[Firebase Config] Project: ${projectId}`);
-console.log(`[Firebase Config] API Key Status: ${apiKey ? 'Present (' + apiKey.substring(0, 4) + '...)' : 'MISSING'}`);
+console.log(`[Firebase Config] API Key Status: ${apiKey ? 'Present' : 'MISSING'}`);
 
 const firebaseConfig = {
   apiKey: apiKey,
-  authDomain: getEnv("VITE_FIREBASE_AUTH_DOMAIN") || `${projectId}.firebaseapp.com`,
+  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com`,
   projectId: projectId,
-  storageBucket: getEnv("VITE_FIREBASE_STORAGE_BUCKET"),
-  messagingSenderId: getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
-  appId: getEnv("VITE_FIREBASE_APP_ID")
+  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID
 };
 
 let app: FirebaseApp;
@@ -54,19 +52,20 @@ let auth: Auth;
 let db: Firestore;
 
 // STRICT INITIALIZATION
-if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-} else {
-    app = getApp();
+try {
+  if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+  } else {
+      app = getApp();
+  }
+  
+  auth = getAuth(app);
+  db = getFirestore(app);
+} catch (e: any) {
+  console.error("FIREBASE INIT FAILED:", e);
+  // Re-throw to ensure we see the error
+  throw new Error(`Firebase Initialization failed: ${e.message}. Check your API Keys.`);
 }
-
-if (!app) {
-    console.error("Firebase App initialization failed. Attempting forced init.");
-    app = initializeApp(firebaseConfig); 
-}
-
-auth = getAuth(app);
-db = getFirestore(app);
 
 // --- DATABASE SERVICE ---
 const DOC_PATH = "system/global_data"; 
@@ -99,7 +98,6 @@ export const subscribeToData = (callback: (data: GlobalData) => void) => {
     }
   }, (err) => {
     console.error("Firebase Sync Error:", err);
-    // Don't alert immediately on load, just log
   });
 
   return unsubscribe;

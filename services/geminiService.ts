@@ -3,15 +3,16 @@ import { Country, Aircraft, StatDefinition } from "../types";
 
 // Safe API Key retrieval
 const getApiKey = () => {
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
-        // @ts-ignore
-        return import.meta.env.VITE_API_KEY;
-    }
+    // Check Vite env with optional chaining to prevent crash
+    const viteKey = (import.meta as any).env?.VITE_API_KEY;
+    if (viteKey) return viteKey;
+    
+    // Check process env (fallback)
     // @ts-ignore
     if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
         return process.env.API_KEY;
     }
+    
     return "";
 };
 
