@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { Country, Aircraft, StatDefinition } from "../types";
 import { MOCK_COUNTRIES, INITIAL_STAT_DEFINITIONS, INITIAL_CATEGORIES, MOCK_AIRCRAFT, INITIAL_AIRCRAFT_STAT_DEFINITIONS, INITIAL_AIRCRAFT_CATEGORIES } from "../constants";
 
@@ -76,6 +76,10 @@ export const saveDatabase = async (data: Partial<GlobalData>) => {
 
 export const loginAdmin = async (email: string, pass: string) => {
   await signInWithEmailAndPassword(auth, email, pass);
+};
+
+export const registerAdmin = async (email: string, pass: string) => {
+  await createUserWithEmailAndPassword(auth, email, pass);
 };
 
 export const logoutAdmin = async () => {
