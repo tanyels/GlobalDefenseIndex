@@ -97,6 +97,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const saveItem = () => {
     if (!editingItem) return;
     
+    // We treat this as any[] initially to manipulate it generally
     let updatedList = [...currentList] as any[];
     const index = updatedList.findIndex(c => c.id === editingItem.id);
     
@@ -109,8 +110,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     updatedList.sort((a, b) => b.score - a.score);
     updatedList = updatedList.map((c, i) => ({ ...c, rank: i + 1 }));
 
-    if (dbContext === 'countries') onUpdateCountries(updatedList);
-    else onUpdateAircrafts(updatedList);
+    // Explicitly cast to the correct type to satisfy TypeScript
+    if (dbContext === 'countries') {
+        onUpdateCountries(updatedList as Country[]);
+    } else {
+        onUpdateAircrafts(updatedList as Aircraft[]);
+    }
 
     setIsEditing(false);
     setEditingItem(null);
@@ -170,8 +175,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             ...item,
             stats: { ...item.stats, [id]: initialValue }
         }));
-        if (dbContext === 'countries') onUpdateCountries(nextList);
-        else onUpdateAircrafts(nextList);
+
+        if (dbContext === 'countries') {
+            onUpdateCountries(nextList as Country[]);
+        } else {
+            onUpdateAircrafts(nextList as Aircraft[]);
+        }
     }
     setNewStat({ category: currentCats[0], format: 'number', id: '', label: '' });
   };
