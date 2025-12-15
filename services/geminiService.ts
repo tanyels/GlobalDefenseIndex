@@ -1,14 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Country, Aircraft, StatDefinition } from "../types";
 
-// Declare process for TS (Runtime handling is done via Vite define)
-declare const process: {
-  env: {
-    API_KEY: string;
-  }
-};
-
+// The API key is injected by Vite's define plugin as a string literal.
+// We access it directly as process.env.API_KEY which becomes "your_key_string".
+// We fallback to empty string to prevent runtime crashes if replacement fails.
 const apiKey = process.env.API_KEY || "";
+
 const ai = new GoogleGenAI({ apiKey });
 
 // --- COUNTRY GENERATION ---

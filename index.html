@@ -4,13 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Global Defense Index</title>
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS (CDN for simplicity, ignore console warning) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-    <!-- Polyfill process to prevent 'process is not defined' errors in browser -->
+    
+    <!-- Critical: Polyfill process for browser environment compatibility -->
     <script>
       window.process = window.process || { env: {} };
     </script>
+    
     <style>
       body {
         background-color: #0f172a; /* slate-900 */
