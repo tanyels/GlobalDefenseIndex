@@ -9,7 +9,9 @@ declare const process: {
 };
 
 // The API key must be obtained exclusively from the environment variable process.env.API_KEY
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// We add a fallback to empty string to prevent the app from crashing on load if the key is missing.
+const apiKey = process.env.API_KEY || "";
+const ai = new GoogleGenAI({ apiKey });
 
 // --- COUNTRY GENERATION ---
 export const generateCountryData = async (
@@ -18,6 +20,10 @@ export const generateCountryData = async (
   statDefinitions: StatDefinition[]
 ): Promise<Country | null> => {
   try {
+    if (!apiKey) {
+      console.error("API Key is missing. Please set VITE_API_KEY in your environment variables.");
+      return null;
+    }
     const model = ai.models;
     
     // Dynamically build the keys for schema documentation in prompt
@@ -87,6 +93,10 @@ export const generateAircraftData = async (
   statDefinitions: StatDefinition[]
 ): Promise<Aircraft | null> => {
   try {
+    if (!apiKey) {
+      console.error("API Key is missing.");
+      return null;
+    }
     const model = ai.models;
     const statKeys = statDefinitions.map(s => s.id).join(', ');
     const sliderKeys = statDefinitions.filter(s => s.format === 'slider').map(s => s.id).join(', ');
@@ -152,6 +162,7 @@ export const analyzeComparison = async (c1: Country, c2: Country): Promise<{
   factors: string[]
 } | null> => {
   try {
+    if (!apiKey) return null;
     const model = ai.models;
     const prompt = `Compare the military strength of ${c1.name} and ${c2.name}. 
     
