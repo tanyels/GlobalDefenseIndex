@@ -1,5 +1,5 @@
 import { Country, Aircraft, StatDefinition } from "../types";
-import * as firebaseApp from "firebase/app";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged, User as FirebaseUser, Auth } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, Firestore } from "firebase/firestore";
 
@@ -16,11 +16,25 @@ export interface GlobalData {
 }
 
 // --- CONFIGURATION ---
-const env = (import.meta as any).env || {};
 
-// PRIORITIZE VITE_ VARIABLES
-const apiKey = env.VITE_FIREBASE_API_KEY || env.VITE_API_KEY || process.env.API_KEY;
-const projectId = env.VITE_FIREBASE_PROJECT_ID || "global-defense-index";
+// Safe Environment Access
+// We access import.meta.env directly to ensure Vite replaces it correctly during build.
+// We also fallback to process.env if available (Node/Polyfilled)
+const getEnv = (key: string) => {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+        // @ts-ignore
+        return import.meta.env[key];
+    }
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env && process.env[key]) {
+        return process.env[key];
+    }
+    return "";
+};
+
+const apiKey = getEnv("VITE_FIREBASE_API_KEY") || getEnv("VITE_API_KEY") || ((typeof process !== 'undefined' && process.env) ? process.env.API_KEY : "");
+const projectId = getEnv("VITE_FIREBASE_PROJECT_ID") || "global-defense-index";
 
 // Log configuration status (without leaking the full key)
 console.log(`[Firebase Config] Project: ${projectId}`);
@@ -28,32 +42,27 @@ console.log(`[Firebase Config] API Key Status: ${apiKey ? 'Present (' + apiKey.s
 
 const firebaseConfig = {
   apiKey: apiKey,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com`,
+  authDomain: getEnv("VITE_FIREBASE_AUTH_DOMAIN") || `${projectId}.firebaseapp.com`,
   projectId: projectId,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.VITE_FIREBASE_APP_ID
+  storageBucket: getEnv("VITE_FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
+  appId: getEnv("VITE_FIREBASE_APP_ID")
 };
 
-let app: firebaseApp.FirebaseApp;
+let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
 // STRICT INITIALIZATION
-// We do NOT wrap this in try/catch because we want it to fail hard if credentials are bad
-// so you can see the error immediately.
-if (firebaseApp.getApps && !firebaseApp.getApps().length) {
-    app = firebaseApp.initializeApp(firebaseConfig);
+if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
 } else {
-    // Accessing getApp safely or falling back to first app if getApps returned something
-    app = firebaseApp.getApp ? firebaseApp.getApp() : (firebaseApp.getApps ? firebaseApp.getApps()[0] : undefined as any);
+    app = getApp();
 }
 
 if (!app) {
-    // Fallback if something is extremely weird with the environment
-    console.error("Firebase App initialization failed. Check your firebase package version.");
-    // Try to force init if possible, or app will crash on next lines
-    app = firebaseApp.initializeApp(firebaseConfig); 
+    console.error("Firebase App initialization failed. Attempting forced init.");
+    app = initializeApp(firebaseConfig); 
 }
 
 auth = getAuth(app);
@@ -63,7 +72,6 @@ db = getFirestore(app);
 const DOC_PATH = "system/global_data"; 
 
 export const initializeDatabase = async () => {
-  // Check if we can read the DB. This serves as a connection test.
   try {
     const docRef = doc(db, DOC_PATH);
     const snap = await getDoc(docRef);
@@ -75,7 +83,7 @@ export const initializeDatabase = async () => {
   } catch (error: any) {
     console.error("CRITICAL DATABASE ERROR:", error);
     if (error.code === 'permission-denied') {
-        console.error("Check Firestore Rules in Firebase Console. (Set to Test Mode for development)");
+        console.error("Check Firestore Rules in Firebase Console.");
     } else if (error.code === 'unavailable') {
         console.error("Client is offline or project does not exist.");
     }
@@ -83,9 +91,6 @@ export const initializeDatabase = async () => {
 };
 
 export const subscribeToData = (callback: (data: GlobalData) => void) => {
-  // STRICT MODE: No mock data fallback.
-  // If the DB connection fails, the app will simply show no data, forcing you to fix the key.
-  
   const unsubscribe = onSnapshot(doc(db, DOC_PATH), (doc) => {
     if (doc.exists()) {
       callback(doc.data() as GlobalData);
@@ -94,7 +99,7 @@ export const subscribeToData = (callback: (data: GlobalData) => void) => {
     }
   }, (err) => {
     console.error("Firebase Sync Error:", err);
-    alert(`Database Connection Failed: ${err.message}. Check console for details.`);
+    // Don't alert immediately on load, just log
   });
 
   return unsubscribe;
@@ -118,7 +123,6 @@ export const loginAdmin = async (email: string, pass: string) => {
       await signInWithEmailAndPassword(auth, email, pass);
   } catch (error: any) {
       console.error("Firebase Login Error:", error.code, error.message);
-      // Pass the raw error up so the UI can display it
       throw error;
   }
 };

@@ -1,11 +1,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Country, Aircraft, StatDefinition } from "../types";
 
-// The API key is injected by Vite's define plugin as a string literal.
-// We access it directly as process.env.API_KEY which becomes "your_key_string".
-// We fallback to empty string to prevent runtime crashes if replacement fails.
-const apiKey = process.env.API_KEY || "";
+// Safe API Key retrieval
+const getApiKey = () => {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+        // @ts-ignore
+        return import.meta.env.VITE_API_KEY;
+    }
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+        return process.env.API_KEY;
+    }
+    return "";
+};
 
+const apiKey = getApiKey();
+
+// Initialize AI only if key exists (handled in calls)
 const ai = new GoogleGenAI({ apiKey });
 
 // --- COUNTRY GENERATION ---
