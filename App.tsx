@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Country, Aircraft, AppView, StatDefinition } from './types';
 import { 
-    MOCK_COUNTRIES, INITIAL_STAT_DEFINITIONS, INITIAL_CATEGORIES,
-    MOCK_AIRCRAFT, INITIAL_AIRCRAFT_STAT_DEFINITIONS, INITIAL_AIRCRAFT_CATEGORIES 
+    INITIAL_STAT_DEFINITIONS, INITIAL_CATEGORIES,
+    INITIAL_AIRCRAFT_STAT_DEFINITIONS, INITIAL_AIRCRAFT_CATEGORIES 
 } from './constants';
 import { generateCountryData, generateAircraftData } from './services/geminiService';
 import { subscribeToData, initializeDatabase, subscribeToAuth, saveDatabase } from './services/firebase';
@@ -18,12 +18,12 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   
-  // Data State (Driven by Firebase)
-  const [countries, setCountries] = useState<Country[]>(MOCK_COUNTRIES);
+  // Start with EMPTY arrays to prove we are loading from DB
+  const [countries, setCountries] = useState<Country[]>([]);
   const [statDefinitions, setStatDefinitions] = useState<StatDefinition[]>(INITIAL_STAT_DEFINITIONS);
   const [categories, setCategories] = useState<string[]>(INITIAL_CATEGORIES);
   
-  const [aircrafts, setAircrafts] = useState<Aircraft[]>(MOCK_AIRCRAFT);
+  const [aircrafts, setAircrafts] = useState<Aircraft[]>([]);
   const [aircraftStats, setAircraftStats] = useState<StatDefinition[]>(INITIAL_AIRCRAFT_STAT_DEFINITIONS);
   const [aircraftCats, setAircraftCats] = useState<string[]>(INITIAL_AIRCRAFT_CATEGORIES);
 
@@ -33,10 +33,10 @@ const App: React.FC = () => {
 
   // --- FIREBASE INITIALIZATION ---
   useEffect(() => {
-    // 1. Initialize DB (create default data if empty)
+    // 1. Initialize DB (will log error if apiKey invalid)
     initializeDatabase();
 
-    // 2. Subscribe to Data Changes
+    // 2. Subscribe to Data Changes (Strict)
     const unsubscribeData = subscribeToData((data) => {
       if (data) {
         if (data.countries) setCountries(data.countries);
@@ -135,7 +135,7 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
         <div className="flex flex-col items-center gap-4">
           <i className="fas fa-circle-notch fa-spin text-4xl text-amber-500"></i>
-          <p className="uppercase font-bold tracking-widest text-sm">Connecting to Secure Database...</p>
+          <p className="uppercase font-bold tracking-widest text-sm">Connecting to Firebase...</p>
         </div>
       </div>
     );
@@ -228,6 +228,12 @@ const App: React.FC = () => {
              <div className="mb-8 text-center">
                 <h2 className="text-3xl font-black uppercase mb-2">World Powers</h2>
                 <p className="text-slate-400 max-w-2xl mx-auto">Global military strength aggregate rankings.</p>
+                {countries.length === 0 && !loadingData && (
+                    <div className="mt-8 p-4 bg-slate-800 rounded border border-yellow-600 text-yellow-200">
+                        <i className="fas fa-exclamation-triangle mr-2"></i>
+                        No data found. If this is the first run, ensure Firebase writes are allowed or login as Admin to seed data.
+                    </div>
+                )}
              </div>
 
              <div className="bg-slate-800 rounded-lg shadow-2xl border border-slate-700 overflow-hidden">
