@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Country, Aircraft, AppView, StatDefinition } from './types';
 import { 
     INITIAL_STAT_DEFINITIONS, INITIAL_CATEGORIES,
-    INITIAL_AIRCRAFT_STAT_DEFINITIONS, INITIAL_AIRCRAFT_CATEGORIES 
+    INITIAL_AIRCRAFT_STAT_DEFINITIONS, INITIAL_AIRCRAFT_CATEGORIES,
+    MOCK_COUNTRIES, MOCK_AIRCRAFT 
 } from './constants';
 import { generateCountryData, generateAircraftData } from './services/geminiService';
 import { subscribeToData, initializeDatabase, subscribeToAuth, saveDatabase } from './services/firebase';
@@ -47,6 +48,7 @@ const App: React.FC = () => {
         if (data.aircraftStats) setAircraftStats(data.aircraftStats);
         if (data.aircraftCats) setAircraftCats(data.aircraftCats);
       }
+      // Stop loading whether data exists or is null (empty DB)
       setLoadingData(false);
     });
 
@@ -69,6 +71,24 @@ const App: React.FC = () => {
   const handleUpdateAircrafts = (newData: Aircraft[]) => saveDatabase({ aircrafts: newData });
   const handleUpdateAircraftStats = (newData: StatDefinition[]) => saveDatabase({ aircraftStats: newData });
   const handleUpdateAircraftCats = (newData: string[]) => saveDatabase({ aircraftCats: newData });
+
+  // --- SEED DATA ---
+  const handleSeedData = async () => {
+    if (!confirm("This will overwrite the database with default mock data. Continue?")) return;
+    try {
+        await saveDatabase({
+            countries: MOCK_COUNTRIES,
+            statDefinitions: INITIAL_STAT_DEFINITIONS,
+            categories: INITIAL_CATEGORIES,
+            aircrafts: MOCK_AIRCRAFT,
+            aircraftStats: INITIAL_AIRCRAFT_STAT_DEFINITIONS,
+            aircraftCats: INITIAL_AIRCRAFT_CATEGORIES
+        });
+        alert("Database initialized successfully!");
+    } catch (e) {
+        alert("Error seeding data. Check console permissions.");
+    }
+  };
 
 
   // Sorting
@@ -229,13 +249,23 @@ const App: React.FC = () => {
                 <h2 className="text-3xl font-black uppercase mb-2">World Powers</h2>
                 <p className="text-slate-400 max-w-2xl mx-auto">Global military strength aggregate rankings.</p>
                 {countries.length === 0 && !loadingData && (
-                    <div className="mt-8 p-4 bg-slate-800 rounded border border-yellow-600 text-yellow-200">
-                        <i className="fas fa-exclamation-triangle mr-2"></i>
-                        No data found. If this is the first run, ensure Firebase writes are allowed or login as Admin to seed data.
+                    <div className="mt-8 p-8 bg-slate-800 rounded-lg border border-slate-700 flex flex-col items-center gap-4 max-w-lg mx-auto shadow-2xl">
+                        <div className="text-yellow-500 text-5xl mb-2"><i className="fas fa-database"></i></div>
+                        <h3 className="text-xl font-bold text-white">Database is Empty</h3>
+                        <p className="text-slate-400 text-center text-sm">
+                            Connect to your Firebase Firestore and initialize the default dataset to get started.
+                        </p>
+                        <button 
+                            onClick={handleSeedData}
+                            className="bg-emerald-600 text-white font-bold px-6 py-3 rounded hover:bg-emerald-500 transition-all uppercase tracking-widest text-sm shadow-lg hover:shadow-emerald-500/20"
+                        >
+                            <i className="fas fa-cloud-upload-alt mr-2"></i> Initialize Default Data
+                        </button>
                     </div>
                 )}
              </div>
 
+             {countries.length > 0 && (
              <div className="bg-slate-800 rounded-lg shadow-2xl border border-slate-700 overflow-hidden">
                 <div className="grid grid-cols-12 bg-slate-900 p-4 text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-700">
                    <div className="col-span-1 text-center">Rank</div>
@@ -274,6 +304,7 @@ const App: React.FC = () => {
                   ))}
                 </div>
              </div>
+             )}
           </div>
         )}
 
