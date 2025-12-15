@@ -1,15 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Country, Aircraft, StatDefinition } from "../types";
 
-// Declare process to avoid TypeScript errors during build since we replace it via Vite config
+// Declare process for TS (Runtime handling is done via Vite define)
 declare const process: {
   env: {
     API_KEY: string;
   }
 };
 
-// The API key must be obtained exclusively from the environment variable process.env.API_KEY
-// We add a fallback to empty string to prevent the app from crashing on load if the key is missing.
 const apiKey = process.env.API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
 
@@ -21,7 +19,7 @@ export const generateCountryData = async (
 ): Promise<Country | null> => {
   try {
     if (!apiKey) {
-      console.error("API Key is missing. Please set VITE_API_KEY in your environment variables.");
+      console.error("API Key is missing. Please check your .env file or VITE_API_KEY variable.");
       return null;
     }
     const model = ai.models;
